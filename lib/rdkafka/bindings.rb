@@ -129,6 +129,7 @@ module Rdkafka
     attach_function :rd_kafka_poll_set_consumer, [:pointer], :void
     attach_function :rd_kafka_consumer_poll, [:pointer, :int], :pointer, blocking: true
     attach_function :rd_kafka_consumer_close, [:pointer], :void, blocking: true
+    attach_function :rd_kafka_offset_store, [:pointer, :int32, :int64], :void
 
     # Stats
 

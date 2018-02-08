@@ -112,18 +112,21 @@ describe Rdkafka::Consumer do
     end
   end
 
-  describe "#commit and #committed" do
-    before do
+  describe "#commit, #committed and #store_offset" do
       # Make sure there's a stored offset
+    let!(:report) do
       report = producer.produce(
         topic:     "consume_test_topic",
         payload:   "payload 1",
         key:       "key 1",
         partition: 0
       ).wait
-      # Wait for message commits the current state,
-      # commit is therefore tested here.
-      message = wait_for_message(
+    end
+
+    # Wait for message commits the current state,
+    # commit is therefore tested here.
+    let!(:message) do
+      wait_for_message(
         topic: "consume_test_topic",
         delivery_report: report,
         config: config
@@ -180,11 +183,7 @@ describe Rdkafka::Consumer do
 
     it "should fetch the committed offsets for the current assignment" do
       consumer.subscribe("consume_test_topic")
-      # Wait for the assignment to be made
-      10.times do
-        break if !consumer.assignment.empty?
-        sleep 1
-      end
+      wait_for_assignment(consumer)
 
       partitions = consumer.committed.to_h["consume_test_topic"]
       expect(partitions).not_to be_nil
@@ -212,6 +211,30 @@ describe Rdkafka::Consumer do
       expect {
         consumer.committed(list)
       }.to raise_error Rdkafka::RdkafkaError
+    end
+
+    context "with enable.auto.offset.store set to false" do
+      before do
+        config[:'enable.auto.offset.store'] = false
+      end
+
+      it "should not have committed offsets" do
+        wait_for_assignment(consumer)
+        partitions = consumer.committed.to_h["consume_test_topic"]
+        expect(partitions).to be_nil
+      end
+
+      describe "#store_offset" do
+        it "should store the offset for a message" do
+          consumer.store_offset(message)
+          consumer.commit
+          wait_for_assignment(consumer)
+
+          partitions = consumer.committed(list).to_h["consume_test_topic"]
+          expect(partitions).not_to be_nil
+          expect(partitions[message.partition].offset).to eq message.offset
+        end
+      end
     end
   end
 
