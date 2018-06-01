@@ -250,5 +250,32 @@ module Rdkafka
         end
       end
     end
+
+    def poll_batch(max_limit, timeout_ms)
+      messages = []
+      time_elapsed = 0
+      while messages.length < max_limit && time_elapsed < timeout_ms
+        start = Time.now
+        message = poll(250)
+        time_elapsed += (Time.now - start) * 1000
+        if message
+          messages << message
+        else
+          next
+        end
+      end
+      messages
+    end
+
+    def each_batch(max_limit, timeout_ms, &block)
+      loop do
+        messages = poll_batch(max_limit, timeout_ms)
+        if messages && messages.length > 0
+          block.call(messages)
+        else
+          next
+        end
+      end
+    end
   end
 end

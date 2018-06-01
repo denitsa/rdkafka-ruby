@@ -6,3 +6,4 @@ ext/librdkafka.*
 .yardoc
 doc
 coverage
+.idea
