@@ -11,12 +11,14 @@ module Rdkafka
     # @private
     def initialize(native_kafka)
       @native_kafka = native_kafka
+      @running = true
     end
 
     # Close this consumer
     # @return [nil]
     def close
       Rdkafka::Bindings.rd_kafka_consumer_close(@native_kafka)
+      @running = false
     end
 
     # Subscribe to one or more topics letting Kafka handle partition assignments.
@@ -254,7 +256,7 @@ module Rdkafka
     def poll_batch(max_limit, timeout_ms)
       messages = []
       time_elapsed = 0
-      while messages.length < max_limit && time_elapsed < timeout_ms
+      while @running && messages.length < max_limit && time_elapsed < timeout_ms
         start = Time.now
         message = poll(250)
         time_elapsed += (Time.now - start) * 1000
@@ -268,7 +270,7 @@ module Rdkafka
     end
 
     def each_batch(max_limit, timeout_ms, &block)
-      loop do
+      while @running
         messages = poll_batch(max_limit, timeout_ms)
         if messages && messages.length > 0
           block.call(messages)
