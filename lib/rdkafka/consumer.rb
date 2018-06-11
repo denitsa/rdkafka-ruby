@@ -25,6 +25,10 @@ module Rdkafka
       @running = false
     end
 
+    def running?
+      @running
+    end
+
     # Subscribe to one or more topics letting Kafka handle partition assignments.
     #
     # @param topics [Array<String>] One or more topic names
