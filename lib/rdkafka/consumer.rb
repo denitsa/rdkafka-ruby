@@ -277,9 +277,16 @@ module Rdkafka
       messages
     end
 
-    def each_batch(max_limit, timeout_ms, &block)
+    def each_batch(max_limit, timeout_ms, thread_id, &block)
+      _assignment = {}
       while @running
         messages = poll_batch(max_limit, timeout_ms)
+
+        if _assignment != assignment.to_h
+          Rdkafka::Config.logger.info "#{thread_id}| assignment: #{assignment.to_h}"
+          _assignment = assignment.to_h
+        end
+
         if messages && messages.length > 0
           block.call(messages)
         else
